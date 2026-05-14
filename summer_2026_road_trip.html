@@ -514,12 +514,42 @@
             overflow: hidden;
         }
 
-        .leg-mini-ferry {
-            color: #1976d2;
+        .leg-mini-mode {
             font-size: 10px;
             font-weight: 700;
             margin-left: 2px;
             vertical-align: 0.5px;
+        }
+
+        .leg-mini-ferry {
+            color: #1976d2;
+        }
+
+        .leg-mini-flight {
+            color: #7b1fa2;
+        }
+
+        .flight-plane-marker {
+            background: transparent;
+            border: 0;
+        }
+
+        .flight-plane-symbol {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.24);
+            color: #7b1fa2;
+            transform-origin: 50% 50%;
+        }
+
+        .flight-plane-symbol svg {
+            width: 15px;
+            height: 15px;
+            display: block;
         }
 
         
@@ -1974,6 +2004,12 @@
             'https://www.google.com/maps/place/Novotel+Paris+Cr%C3%A9teil+Le+Lac/@48.7806962,2.4474627,17z/data=!3m1!4b1!4m6!3m5!1s0x47e673524ed9b1f3:0x4029606ef9c7c9c2!8m2!3d48.7806962!4d2.4474627!16s%2Fg%2F1tdn3dlg';
         const GMAPS_AV_DINAMARCA_6_VILLALBILLA =
             'https://www.google.com/maps/place/Av.+Dinamarca,+6,+28810+Villalbilla,+Madrid/@40.450773,-3.3699482,18z/data=!3m1!4b1!4m6!3m5!1s0xd4248ee2a882203:0xb4d4663a9f9fd395!8m2!3d40.4507717!4d-3.369137!16s%2Fg%2F11c26cp21_';
+        const GMAPS_BORDEAUX_AIRPORT =
+            'https://www.google.com/maps/search/?api=1&query=Bordeaux%20Airport%20BOD';
+        const GMAPS_MADRID_BARAJAS_AIRPORT =
+            'https://www.google.com/maps/search/?api=1&query=Adolfo%20Suarez%20Madrid-Barajas%20Airport%20MAD';
+        const GMAPS_BRUSSELS_CHARLEROI_AIRPORT =
+            'https://www.google.com/maps/search/?api=1&query=Brussels%20South%20Charleroi%20Airport%20CRL';
         const DFDS_TERMINAL_INFO_KIEL =
             'https://www.dfds.com/en/passenger-ferries/passenger-information/terminals/kiel';
         const DFDS_TERMINAL_INFO_KLAIPEDA =
@@ -2024,6 +2060,24 @@
                 date: "June 24"
             },
             {
+                id: 14,
+                from: "Bordeaux Airport (BOD)",
+                to: "Madrid-Barajas Airport (MAD)",
+                distance: 537,
+                time: "17:55 → 19:20 · Iberia",
+                accommodation: "Iberia · 17:55 → 19:20",
+                stayAddress: "Adolfo Suárez Madrid-Barajas Airport, Madrid, Spain",
+                googleMapsPlaceUrlStart: GMAPS_BORDEAUX_AIRPORT,
+                googleMapsPlaceUrl: GMAPS_MADRID_BARAJAS_AIRPORT,
+                lat1: 44.8283,
+                lon1: -0.7156,
+                lat2: 40.4983,
+                lon2: -3.5676,
+                color: "#9C27B0",
+                type: "flight",
+                date: "June 27"
+            },
+            {
                 id: 3,
                 from: "Château de Salles (Gironde), France",
                 to: "Paris (Créteil), France",
@@ -2062,6 +2116,24 @@
                 color: "#4ECDC4",
                 type: "drive",
                 date: "July 5"
+            },
+            {
+                id: 15,
+                from: "Madrid-Barajas Airport (MAD)",
+                to: "Brussels Charleroi Airport (CRL)",
+                distance: 1275,
+                time: "11:50 → 14:10",
+                accommodation: "Flight · 11:50 → 14:10",
+                stayAddress: "Brussels South Charleroi Airport, Belgium",
+                googleMapsPlaceUrlStart: GMAPS_MADRID_BARAJAS_AIRPORT,
+                googleMapsPlaceUrl: GMAPS_BRUSSELS_CHARLEROI_AIRPORT,
+                lat1: 40.4983,
+                lon1: -3.5676,
+                lat2: 50.4592,
+                lon2: 4.4538,
+                color: "#9C27B0",
+                type: "flight",
+                date: "July 10"
             },
             {
                 id: 5,
@@ -2291,6 +2363,7 @@
         function stayLineForDisplay(trip) {
             if (!trip.accommodation) return '';
             if (trip.type === 'ferry') return trip.accommodation;
+            if (trip.type === 'flight') return trip.accommodation;
             if (isHotelLodging(trip)) return trip.accommodation;
             if (trip.stayAddress && String(trip.stayAddress).trim()) return String(trip.stayAddress).trim();
             return trip.to && String(trip.to).trim() ? String(trip.to).trim() : trip.accommodation;
@@ -2741,6 +2814,16 @@
             return trip.time;
         }
 
+        function tripModeLabel(trip) {
+            if (trip.type === 'ferry') return 'Ferry';
+            if (trip.type === 'flight') return 'Flight';
+            return 'Drive';
+        }
+
+        function tripModeLabelLower(trip) {
+            return tripModeLabel(trip).toLowerCase();
+        }
+
         function tripById(id) {
             return trips.find(t => t.id === id) || null;
         }
@@ -2781,6 +2864,8 @@
             } else if (layer instanceof L.Polyline) {
                 layer._bOpacity = layer.options.opacity != null ? layer.options.opacity : 1;
                 layer._bWeight = layer.options.weight != null ? layer.options.weight : 4;
+            } else if (layer instanceof L.Marker) {
+                layer._bOpacity = layer.options.opacity != null ? layer.options.opacity : 1;
             }
         }
 
@@ -2822,6 +2907,8 @@
                     } else {
                         layer.setStyle({ opacity: layer._bOpacity, weight: layer._bWeight });
                     }
+                } else if (layer instanceof L.Marker) {
+                    layer.setOpacity(dim ? 0.42 : layer._bOpacity);
                 }
             });
         }
@@ -2881,7 +2968,7 @@
             const dateStr = trip.date ? escapeHtml(String(trip.date).trim()) : '';
             const km = displayKmForTrip(trip);
             const timeStr = escapeHtml(displayTimeForTrip(trip));
-            const mode = trip.type === 'ferry' ? 'Ferry' : 'Drive';
+            const mode = tripModeLabel(trip);
             // Primary label: property name; secondary: street address (if different)
             const primaryLabel = accName || arrAddr || trip.to || '—';
             const secondaryAddr = arrAddr && arrAddr !== primaryLabel ? arrAddr : '';
@@ -2939,7 +3026,7 @@
             if (!row) return;
             const km = displayKmForTrip(trip);
             const timeStr = displayTimeForTrip(trip);
-            row.textContent = `${km} km · ${timeStr} · ${trip.type === 'ferry' ? 'ferry' : 'drive'}`;
+            row.textContent = `${km} km · ${timeStr} · ${tripModeLabelLower(trip)}`;
         }
 
         /** Summary totals: selected legs only; if nothing is selected, treat as entire trip. */
@@ -3332,6 +3419,9 @@
         /** Softer sea blue when exactly one ferry leg is selected. */
         const SOFT_SINGLE_FERRY_MAP_COLOR = '#7ec8ea';
 
+        /** Soft violet for single flight legs. */
+        const SOFT_SINGLE_FLIGHT_MAP_COLOR = '#c49be8';
+
         /**
          * Distinct pastel hue per leg id (golden-angle spacing). Lower saturation / higher lightness
          * so multi-select lines sit closer to the soft single-leg palette while staying distinguishable.
@@ -3346,6 +3436,7 @@
         function lineColorForTrip(trip, selectionCount) {
             if (selectionCount >= 2) return distinctMapColorForTripId(trip.id);
             if (trip.type === 'ferry') return SOFT_SINGLE_FERRY_MAP_COLOR;
+            if (trip.type === 'flight') return SOFT_SINGLE_FLIGHT_MAP_COLOR;
             return SOFT_SINGLE_DRIVE_MAP_COLOR;
         }
 
@@ -3392,6 +3483,87 @@
             const latlngs = trip.ferryReverse ? base.reverse() : base;
             const c = lineColorForTrip(trip, selectionCount);
             addRouteLineStack(latlngs, c, { mainWeight: 6, smoothFactor: 1, haloOpacity: 0.9, mainOpacity: 0.95 }, trip.id);
+        }
+
+        function flightArcLatLngs(trip) {
+            const midLat = (Number(trip.lat1) + Number(trip.lat2)) / 2;
+            const lonScale = Math.max(0.25, Math.cos((midLat * Math.PI) / 180));
+            const x1 = Number(trip.lon1) * lonScale;
+            const y1 = Number(trip.lat1);
+            const x2 = Number(trip.lon2) * lonScale;
+            const y2 = Number(trip.lat2);
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (!Number.isFinite(len) || len === 0) return [L.latLng(trip.lat1, trip.lon1), L.latLng(trip.lat2, trip.lon2)];
+
+            const bend = Math.min(Math.max(len * 0.14, 0.35), 1.8);
+            const side = dx >= 0 ? 1 : -1;
+            const cx = (x1 + x2) / 2 + (-dy / len) * bend * side;
+            const cy = (y1 + y2) / 2 + (dx / len) * bend * side;
+            const points = [];
+            const steps = 48;
+
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const inv = 1 - t;
+                const x = inv * inv * x1 + 2 * inv * t * cx + t * t * x2;
+                const y = inv * inv * y1 + 2 * inv * t * cy + t * t * y2;
+                points.push(L.latLng(y, x / lonScale));
+            }
+            return points;
+        }
+
+        function flightBearingAngleDeg(latlngs) {
+            const mid = Math.floor(latlngs.length / 2);
+            const a = latlngs[Math.max(0, mid - 2)];
+            const b = latlngs[Math.min(latlngs.length - 1, mid + 2)];
+            if (!a || !b) return 0;
+            const midLat = ((a.lat + b.lat) / 2) * Math.PI / 180;
+            const dx = (b.lng - a.lng) * Math.cos(midLat);
+            const dy = b.lat - a.lat;
+            if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) return 0;
+            return -(Math.atan2(dy, dx) * 180 / Math.PI);
+        }
+
+        function addFlightPlaneIcon(trip, latlngs, lineColor) {
+            if (!latlngs || !latlngs.length) return;
+            const mid = latlngs[Math.floor(latlngs.length / 2)];
+            const angle = flightBearingAngleDeg(latlngs);
+            const icon = L.divIcon({
+                className: 'flight-plane-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                html: `<span class="flight-plane-symbol" style="color:${lineColor};transform:rotate(${angle}deg)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 13.5v-3l8.5-1.25L7 3h3.5L16 8.5l4-.55c1.2-.17 2 .75 2 1.8v4.5c0 1.05-.8 1.97-2 1.8l-4-.55-5.5 5.5H7l3.5-6.25L2 13.5Z"/></svg></span>`
+            });
+            const marker = L.marker(mid, {
+                icon,
+                interactive: true,
+                bubblingMouseEvents: false,
+                zIndexOffset: 900
+            }).addTo(map);
+            marker._routeTripId = trip.id;
+            rememberLayerBaseline(marker);
+            marker.on('click', ev => handleRoutePolylineClick(trip.id, ev));
+            legMarkers.push(marker);
+        }
+
+        function addFlightLineToMap(trip, selectionCount) {
+            const c = lineColorForTrip(trip, selectionCount);
+            const latlngs = flightArcLatLngs(trip);
+            addRouteLineStack(
+                latlngs,
+                c,
+                {
+                    mainWeight: 5,
+                    mainOpacity: 0.92,
+                    haloOpacity: 0.84,
+                    dashArray: '3 9',
+                    smoothFactor: 1.2
+                },
+                trip.id
+            );
+            addFlightPlaneIcon(trip, latlngs, c);
         }
 
         function addDrivePolylineToMap(trip, latlngs, selectionCount) {
@@ -3553,7 +3725,7 @@
         function endpointPopupSection(trip, role) {
             const place = role === 'start' ? trip.from : trip.to;
             const label = role === 'start' ? 'Departure' : 'Arrival';
-            const mode = trip.type === 'ferry' ? 'Ferry' : 'Drive';
+            const mode = tripModeLabel(trip);
             const km = displayKmForTrip(trip);
             const timeStr = escapeHtml(displayTimeForTrip(trip));
             const dateStr = trip.date ? escapeHtml(String(trip.date).trim()) : '';
@@ -3620,7 +3792,7 @@
                 const pillClass = isDep ? 'ep-pill--dep' : 'ep-pill--arr';
                 const label = isDep ? 'Departure' : 'Arrival';
                 const dateStr = trip.date ? escapeHtml(String(trip.date).trim()) : '';
-                const mode = trip.type === 'ferry' ? 'Ferry' : 'Drive';
+                const mode = tripModeLabel(trip);
                 const km = displayKmForTrip(trip);
                 const timeStr = escapeHtml(displayTimeForTrip(trip));
                 const otherEnd = isDep ? trip.to : trip.from;
@@ -3749,7 +3921,7 @@
             fitMapToRoughSelection(chosen);
 
             const drawOrder = chosenTripsForMapDrawOrder(chosen);
-            const driveLegs = drawOrder.filter(t => t.type !== 'ferry');
+            const driveLegs = drawOrder.filter(t => t.type === 'drive');
 
             try {
                 const driveResults = await Promise.all(
@@ -3763,6 +3935,7 @@
                 const driveIdx = new Map(driveLegs.map((t, i) => [t.id, i]));
                 for (const t of drawOrder) {
                     if (t.type === 'ferry') addFerryLineToMap(t, nSel);
+                    else if (t.type === 'flight') addFlightLineToMap(t, nSel);
                     else addDrivePolylineToMap(t, driveResults[driveIdx.get(t.id)], nSel);
                 }
                 addEndpointMarkersForTrips(chosen, nSel);
@@ -4056,13 +4229,18 @@
             legDiv.dataset.legIndex = String(tripIndex);
             legDiv.title = `${trip.from} → ${trip.to}`;
             const nextTrip = trips[tripIndex + 1] || null;
-            const ferryTag = trip.type === 'ferry' ? '<span class="leg-mini-ferry" title="Ferry crossing">SEA</span>' : '';
+            const modeTag =
+                trip.type === 'ferry'
+                    ? '<span class="leg-mini-mode leg-mini-ferry" title="Ferry crossing">SEA</span>'
+                    : trip.type === 'flight'
+                      ? '<span class="leg-mini-mode leg-mini-flight" title="Flight">AIR</span>'
+                      : '';
             legDiv.innerHTML = `
                 <input type="checkbox" class="leg-cb"${selectedIds.has(trip.id) ? ' checked' : ''} />
                 ${legDateColumnHtml(trip, nextTrip)}
                 <div class="leg-main">
-                    <div class="leg-line1">${escapeHtml(trip.from)} → ${escapeHtml(trip.to)} ${ferryTag}</div>
-                    <div class="leg-line2"><span class="leg-line2-meta">${displayKmForTrip(trip)} km · ${escapeHtml(displayTimeForTrip(trip))} · ${trip.type === 'ferry' ? 'ferry' : 'drive'}</span></div>
+                    <div class="leg-line1">${escapeHtml(trip.from)} → ${escapeHtml(trip.to)} ${modeTag}</div>
+                    <div class="leg-line2"><span class="leg-line2-meta">${displayKmForTrip(trip)} km · ${escapeHtml(displayTimeForTrip(trip))} · ${tripModeLabelLower(trip)}</span></div>
                     <div class="leg-line-eta" aria-live="polite"></div>
                     ${stayTextBlock(trip)}
                     ${legCornerActionsBlock(trip)}
